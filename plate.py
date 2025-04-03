@@ -136,7 +136,7 @@ def recognize_characters_easyocr(plate_image, characters):
 def detect_plate_by_YOLO(image):
     from ultralytics import YOLO
 
-    license_plate_detector = YOLO('/yolov11/yolo11n.pt').to('cuda')
+    license_plate_detector = YOLO(r"D:\Personal\Chenguang Wang\ocr\yolov11\best.pt").to('cuda')
 
     license_plates = license_plate_detector(image)[0]
     for license_plate in license_plates.boxes.data.tolist():
@@ -145,6 +145,60 @@ def detect_plate_by_YOLO(image):
             # cv2.imwrite(f'yolo_plate_{int(x1)}_{int(x2)}.png', image[int(y1):int(y2), int(x1):int(x2), :])
             return int(x1), int(y1), int(x2), int(y2)
     return None
+
+
+
+def process_video(video_path: str, output_path: str = None, frame_skip: int = 5):
+    """Process each frame of a video using the provided processor function."""
+    cap = cv2.VideoCapture(video_path)
+
+    # Check if video opened successfully
+    if not cap.isOpened():
+        print("Error opening video file")
+        return
+
+    # Get video properties
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    print(f"Video FPS: {fps}, Resolution: {width}x{height}")
+
+    cv2.namedWindow('Car Plate Detection', cv2.WINDOW_NORMAL)
+
+    while True:
+        # Read a frame from the video
+        ret, frame = cap.read()
+
+        # If frame is read correctly, ret is True
+        if not ret:
+            print("End of video or error reading frame")
+            break
+
+        # Detect plates in the frame
+        plate_boxes = detect_plate_by_YOLO(frame)
+
+        if plate_boxes:
+        # Draw bounding boxes for each detected plate
+            x1, y1, x2, y2 = plate_boxes
+
+            # Draw rectangle
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+            # Add label
+            cv2.putText(frame, 'License Plate', (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+
+        # Display the resulting frame
+        cv2.imshow('Car Plate Detection', frame)
+
+        # Press 'q' to exit
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
+
+    # Release everything when done
+    cap.release()
+    cv2.destroyAllWindows()
+
 
 
 def main():
